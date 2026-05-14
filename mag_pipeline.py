@@ -103,7 +103,7 @@ def load_mag_directory(directory: str) -> pd.DataFrame:
     Concatenated DataFrame sorted by time, duplicates removed
     """
     all_files = sorted(Path(directory).rglob("*.nc"))
-    l2_files  = [f for f in all_files if f.name.startswith("L2_")]
+    l2_files  = [f for f in all_files if f.name.startswith("L2_") and "(" not in f.name]
     skipped   = len(all_files) - len(l2_files)
 
     if skipped:
