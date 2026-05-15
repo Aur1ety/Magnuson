@@ -104,10 +104,10 @@ class TCNModel(nn.Module):
     def __init__(
         self,
         input_dim:   int   = 8,
-        n_filters:   int   = 64,
+        n_filters:   int   = 32,
         kernel_size: int   = 3,
-        n_blocks:    int   = 6,
-        dropout:     float = 0.2,
+        n_blocks:    int   = 4,
+        dropout:     float = 0.4,
     ):
         super().__init__()
         self.input_proj = nn.Conv1d(input_dim, n_filters, kernel_size=1)

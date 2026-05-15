@@ -95,12 +95,11 @@ def fetch_donki_events(start_date: str, end_date: str) -> pd.DataFrame:
 # Used as fallback if no label_csv or DONKI provided.
 # Dates are approximate -- refine from ISRO event bulletins.
 KNOWN_EVENTS = [
-    # G5 storm, May 2024 -- the strongest in 20 years
-    # Bz dropped to -50 nT, Dst reached -412 nT
-    {"start_time": "2024-05-10 17:00:00", "end_time": "2024-05-13 12:00:00"},
-    # Secondary CME arrival during same storm sequence
-    {"start_time": "2024-05-15 06:00:00", "end_time": "2024-05-16 18:00:00"},
-    # Jan 2026 storm
+    # G5 storm May 2024 -- Bz hit -54nT (confirmed from parsed data)
+    {"start_time": "2024-05-10 17:00:00", "end_time": "2024-05-11 20:00:00"},
+    # Secondary CME same sequence
+    {"start_time": "2024-05-12 00:00:00", "end_time": "2024-05-13 06:00:00"},
+    # Jan 2026 storm -- Bz hit -59nT (confirmed from parsed data)
     {"start_time": "2026-01-19 00:00:00", "end_time": "2026-01-20 12:00:00"},
 ]
 
