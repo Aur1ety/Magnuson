@@ -222,6 +222,7 @@ def main(args: argparse.Namespace) -> None:
     logger.info("Loading MAG data from: %s", args.mag_dir)
     mag_raw = load_mag_directory(args.mag_dir)
     mag_df  = resample_mag_to_1min(mag_raw)
+    mag_df  = mag_df.dropna(how='all')
 
     # 2. Build features
     logger.info("Building features...")
@@ -310,9 +311,12 @@ def main(args: argparse.Namespace) -> None:
     device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
     for name, model in trained_models.items():
         model.to(device).eval()
-        with torch.no_grad():
-            xt    = torch.tensor(X_test, dtype=torch.float32, device=device)
-            probs = torch.sigmoid(model(xt)).cpu().numpy()
+        probs = []
+        for i in range(0, len(X_test), 256):
+            xb = torch.tensor(X_test[i:i+256], dtype=torch.float32, device=device)
+            with torch.no_grad():
+                probs.append(torch.sigmoid(model(xb)).cpu().numpy())
+        probs = np.concatenate(probs)
         logger.info("-- %s --", name.upper())
         print_report(evaluate(y_test, probs))
 
