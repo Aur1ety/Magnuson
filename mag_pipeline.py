@@ -55,7 +55,14 @@ def parse_mag_nc(filepath: Path) -> pd.DataFrame:
     -------
     DataFrame with columns [bx, by, bz, b_mag], DatetimeIndex (UTC naive)
     """
-    ds = xr.open_dataset(str(filepath), engine="netcdf4")
+    for engine in ["netcdf4", "h5netcdf"]:
+        try:
+            ds = xr.open_dataset(str(filepath), engine=engine)
+            break
+        except Exception:
+            continue
+    else:
+        raise OSError(f"Could not open {filepath.name} with any engine")
 
     raw_time   = ds["time"].values.astype(np.float64)
     timestamps = pd.to_datetime(raw_time, unit="s", utc=True).tz_localize(None)
