@@ -11,7 +11,7 @@ Models benchmarked:
   5. XGBoost        - Gradient boosted trees (non-neural baseline)
   6. PatchTransformer     - ViT-style patch attention (NEW)
   7. LightGBM             - LightGBM + SHAP interpretability (NEW)
-  8. EnsembleTFTTransTCN  - Learned blend of TFT+Transformer+TCN (NEW)
+  8. EnsemblePatchTransTCN - Learned blend of PatchTransformer+Transformer+TCN (NEW)
 
 Run on Kaggle:
     !python /kaggle/working/Geomag-Detector/train.py \
@@ -39,7 +39,7 @@ from feature_engineer import build_mag_features, MAG_FEATURE_NAMES
 from label_events     import attach_labels
 from model_factory    import (
     TCNModel, TransformerModel, TFTModel, CNNTransformer, XGBoostModel,
-    PatchTransformer, LightGBMModel, EnsembleTFTTransTCN,
+    PatchTransformer, LightGBMModel, EnsemblePatchTransTCN,
 )
 from eval             import evaluate, print_report, find_best_threshold
 
@@ -342,13 +342,13 @@ def main(args):
         logger.warning("lightgbm not installed — skipping. Run: pip install lightgbm shap")
 
     logger.info("=" * 50)
-    logger.info("Training: Ensemble (TFT + Transformer + TCN) — blend only")
+    logger.info("Training: Ensemble (PatchTransformer + Transformer + TCN) — blend only")
     logger.info("=" * 50)
 
-    required = {"TFT", "Transformer", "TCN"}
+    required = {"PatchTransformer", "Transformer", "TCN"}
     if required.issubset(trained_deep.keys()):
-        ensemble = EnsembleTFTTransTCN(
-            tft=trained_deep["TFT"],
+        ensemble = EnsemblePatchTransTCN(
+            patch=trained_deep["PatchTransformer"],
             transformer=trained_deep["Transformer"],
             tcn=trained_deep["TCN"],
             frozen=True,
@@ -360,7 +360,8 @@ def main(args):
             lr=5e-4,
             patience=10,
         )
-        torch.save(ensemble.state_dict(), "saved_models/ensemble_tft_trans_tcn_v1.pth")
+        torch.save(ensemble.state_dict(),
+                   "saved_models/ensemble_patch_trans_tcn_v1.pth")
 
         ens_probs = predict_proba(ensemble, X_test, device)
         best_thresh, best_metrics = find_best_threshold(y_test, ens_probs, metric="f1")

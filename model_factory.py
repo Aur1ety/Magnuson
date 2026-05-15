@@ -8,10 +8,10 @@ Models:
   2. TransformerModel      - Self-attention encoder
   3. TFTModel              - Temporal Fusion Transformer (variable importance)
   4. CNNTransformer        - 1D CNN local features + Transformer global context
-  5. XGBoostModel          - Gradient boosted trees on summary statistics
+   5. XGBoostModel          - Gradient boosted trees on summary statistics
   6. PatchTransformer      - ViT-style patch attention (NEW)
   7. LightGBMModel         - LightGBM + SHAP interpretability (NEW)
-  8. EnsembleTFTTransTCN   - Learned-weight ensemble of TFT+Transformer+TCN (NEW)
+  8. EnsemblePatchTransTCN - Learned-weight ensemble of PatchTransformer+Transformer+TCN (NEW)
 
 All deep learning models:
   Input:  (batch, seq_len, 8)  -- 8 MAG features
@@ -62,11 +62,6 @@ class ResidualTCNBlock(nn.Module):
 
 
 class TCNModel(nn.Module):
-    """
-    Temporal Convolutional Network.
-    Best at sharp transients: shock arrival, sudden Bz southward turning.
-    Receptive field ~125 steps (~2hrs) with 4 blocks at kernel=3.
-    """
     def __init__(self, input_dim=8, n_filters=32, kernel_size=3,
                  n_blocks=4, dropout=0.4):
         super().__init__()
@@ -89,7 +84,6 @@ class TCNModel(nn.Module):
 # ── 2. Transformer Encoder ────────────────────────────────────────────────────
 
 class PositionalEncoding(nn.Module):
-    """Standard sinusoidal positional encoding."""
     def __init__(self, d_model, max_len=1024, dropout=0.1):
         super().__init__()
         self.dropout = nn.Dropout(dropout)
@@ -107,11 +101,6 @@ class PositionalEncoding(nn.Module):
 
 
 class TransformerModel(nn.Module):
-    """
-    Transformer Encoder for CME flux rope detection.
-    Self-attention directly connects any two time steps regardless of distance.
-    Multi-head attention can simultaneously track Bz rotation AND |B| enhancement.
-    """
     def __init__(self, input_dim=8, d_model=64, nhead=4,
                  num_layers=3, dropout=0.2, max_seq_len=512):
         super().__init__()
@@ -323,9 +312,6 @@ class XGBoostModel:
 # ── 6. Patch Transformer (NEW) ────────────────────────────────────────────────
 
 class PatchTransformer(nn.Module):
-    """
-    ViT-style patch attention for time series (PatchTST approach).
-    """
     def __init__(self, input_dim=8, patch_size=16, d_model=64, nhead=4,
                  num_layers=3, dropout=0.2, seq_len=128):
         super().__init__()
@@ -475,18 +461,18 @@ class LightGBMModel:
         return df.reindex(df["shap_value"].abs().sort_values(ascending=False).index).head(15)
 
 
-# ── 8. Ensemble: TFT + Transformer + TCN (NEW) ───────────────────────────────
+# ── 8. Ensemble: PatchTransformer + Transformer + TCN ────────────────────────
 
-class EnsembleTFTTransTCN(nn.Module):
-    def __init__(self, tft: TFTModel, transformer: TransformerModel,
+class EnsemblePatchTransTCN(nn.Module):
+    def __init__(self, patch: PatchTransformer, transformer: TransformerModel,
                  tcn: TCNModel, frozen: bool = True):
         super().__init__()
-        self.tft         = tft
+        self.patch       = patch
         self.transformer = transformer
         self.tcn         = tcn
 
         if frozen:
-            for m in [self.tft, self.transformer, self.tcn]:
+            for m in [self.patch, self.transformer, self.tcn]:
                 for p in m.parameters():
                     p.requires_grad_(False)
 
@@ -497,29 +483,33 @@ class EnsembleTFTTransTCN(nn.Module):
         )
 
     def forward(self, x):
-        l_tft   = self.tft(x)
+        l_patch = self.patch(x)
         l_trans = self.transformer(x)
         l_tcn   = self.tcn(x)
-        stacked = torch.stack([l_tft, l_trans, l_tcn], dim=1)
+        stacked = torch.stack([l_patch, l_trans, l_tcn], dim=1)
         return self.blend(stacked).squeeze(-1)
 
     @classmethod
-    def from_saved(cls, tft_path: str, transformer_path: str, tcn_path: str,
-                   input_dim: int = 8, frozen: bool = True,
-                   device: str | None = None) -> "EnsembleTFTTransTCN":
+    def from_saved(cls, patch_path: str, transformer_path: str, tcn_path: str,
+                   input_dim: int = 8, seq_len: int = 128,
+                   frozen: bool = True,
+                   device: str | None = None) -> "EnsemblePatchTransTCN":
         if device is None:
             device = "cuda" if torch.cuda.is_available() else "cpu"
 
-        def _load(model_cls, path, **kwargs):
-            m = model_cls(input_dim=input_dim, **kwargs)
-            m.load_state_dict(torch.load(path, map_location=device))
-            return m
+        patch = PatchTransformer(input_dim=input_dim, seq_len=seq_len)
+        patch.load_state_dict(torch.load(patch_path, map_location=device))
 
-        tft         = _load(TFTModel,         tft_path)
-        transformer = _load(TransformerModel, transformer_path)
-        tcn         = _load(TCNModel,         tcn_path)
+        transformer = TransformerModel(input_dim=input_dim)
+        transformer.load_state_dict(torch.load(transformer_path, map_location=device))
 
-        return cls(tft, transformer, tcn, frozen=frozen)
+        tcn = TCNModel(input_dim=input_dim)
+        tcn.load_state_dict(torch.load(tcn_path, map_location=device))
+
+        return cls(patch, transformer, tcn, frozen=frozen)
+
+
+EnsembleTFTTransTCN = EnsemblePatchTransTCN
 
 
 # ── Stubs for backwards compatibility ────────────────────────────────────────
