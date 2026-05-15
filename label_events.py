@@ -100,6 +100,8 @@ KNOWN_EVENTS = [
     {"start_time": "2024-05-10 17:00:00", "end_time": "2024-05-13 12:00:00"},
     # Secondary CME arrival during same storm sequence
     {"start_time": "2024-05-15 06:00:00", "end_time": "2024-05-16 18:00:00"},
+    # Jan 2026 storm
+    {"start_time": "2026-01-19 00:00:00", "end_time": "2026-01-20 12:00:00"},
 ]
 
 
