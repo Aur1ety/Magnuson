@@ -95,12 +95,23 @@ def fetch_donki_events(start_date: str, end_date: str) -> pd.DataFrame:
 # Used as fallback if no label_csv or DONKI provided.
 # Dates are approximate -- refine from ISRO event bulletins.
 KNOWN_EVENTS = [
-    # G5 storm May 2024 -- Bz hit -54nT (confirmed from parsed data)
+    # G5 storm May 2024 -- Bz hit -54nT
     {"start_time": "2024-05-10 17:00:00", "end_time": "2024-05-11 20:00:00"},
     # Secondary CME same sequence
     {"start_time": "2024-05-12 00:00:00", "end_time": "2024-05-13 06:00:00"},
-    # Jan 2026 storm -- Bz hit -59nT (confirmed from parsed data)
-    {"start_time": "2026-01-19 00:00:00", "end_time": "2026-01-20 12:00:00"},
+    # Aug 2024 storm -- Bz hit -15.9nT (Aug 4-5)
+    {"start_time": "2024-08-04 06:00:00", "end_time": "2024-08-05 18:00:00"},
+    # Oct 2024 storm -- Bz hit -13.7nT (Oct 6-7)
+    {"start_time": "2024-10-06 00:00:00", "end_time": "2024-10-07 12:00:00"},
+    # Nov 2024 storm -- Bz hit -12.7nT (Nov 8)
+    {"start_time": "2024-11-07 12:00:00", "end_time": "2024-11-08 23:00:00"},
+    # Mar 2025 storm -- Bz hit -25.7nT (Mar 21) and -22.8nT (Mar 26)
+    {"start_time": "2025-03-21 00:00:00", "end_time": "2025-03-22 18:00:00"},
+    {"start_time": "2025-03-26 00:00:00", "end_time": "2025-03-27 12:00:00"},
+    # Apr 2025 storm -- Bz hit -21.3nT (Apr 15)
+    {"start_time": "2025-04-14 12:00:00", "end_time": "2025-04-15 23:00:00"},
+    # Jan 2026 storm -- Bz hit -59nT
+    {"start_time": "2026-01-19 00:00:00", "end_time": "2026-01-20 18:00:00"},
 ]
 
 
