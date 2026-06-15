@@ -2,8 +2,8 @@ import torch
 import joblib
 import os
 
-model_path = r"C:\Users\<you>\Documents\Geomag Detector\patchtransformer_mag_v1.pth"
-scaler_path = r"C:\Users\<you>\Documents\Geomag Detector\scaler_mag.pkl"
+model_path = r"C:\Users\<you>\Documents\Magnuson\patchtransformer_mag_v1.pth"
+scaler_path = r"C:\Users\<you>\Documents\Magnuson\scaler_mag.pkl"
 
 print(f"--- Identity Check ---")
 
