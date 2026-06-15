@@ -1,4 +1,4 @@
-# Geomag Detector — CME Detection from Aditya-L1 MAG Magnetometer Data
+# Magnuson — CME Detection from Aditya-L1 MAG Magnetometer Data
 
 Coronal Mass Ejection (CME) detector using magnetometer data from the Aditya-L1 satellite's MAG instrument. Uses a PatchTransformer (ViT-style patch attention for time series) to detect CME/ICME passages from 9 physics-informed magnetic field features.
 
@@ -7,7 +7,7 @@ Coronal Mass Ejection (CME) detector using magnetometer data from the Aditya-L1 
 ## Repository Structure
 
 ```
-Geomag-Detector/
+Magnuson/
 ├── Data/                           # MAG NetCDF + blind test data (gitignored)
 ├── saved_models/                   # Trained model checkpoints (gitignored)
 ├── mag_pipeline.py                 # MAG L2 NetCDF ingestion + resampling
@@ -23,7 +23,7 @@ Geomag-Detector/
 ├── data_pipeline.py                # Original SWIS pipeline (legacy)
 ├── eval.groovy                     # Legacy eval script
 ├── CME_MAG_Implementation_Guide.md # Full implementation guide
-├── geomag-detecor.ipynb            # Notebook (gitignored)
+├── magnuson.ipynb                  # Notebook (gitignored)
 ├── .gitignore
 └── README.md
 ```

@@ -5,7 +5,6 @@ import numpy as np
 import matplotlib.pyplot as plt
 import torch
 import joblib
-from scipy.stats import norm
 
 # 1. Path Management
 sys.path.insert(0, os.getcwd())
@@ -19,71 +18,102 @@ MODEL_PATH = "patchtransformer_mag_v1.pth"
 SCALER_PATH = "scaler_mag.pkl"
 THRESHOLD = 0.61  # Optimal F1 threshold from training
 
+# Exact paths matched to your local directory strings
 TEST_DIRS = [
-    r"C:\Users\ponpo\Documents\Geomag Detector\Data\blind test\Apr 12_26 - Apr 14_26",
-    r"C:\Users\ponpo\Documents\Geomag Detector\Data\blind test\Oct 9_24 - Oct 12_24"
+    r"C:\Users\ponpo\Documents\Magnuson\Data\blind test\Oct 9_24 - Oct 12_24",
+    r"C:\Users\ponpo\Documents\Magnuson\Data\blind test\May 14-17 2024",
+    r"C:\Users\ponpo\Documents\Magnuson\Data\blind test\Mar 1-10 2025",
+    r"C:\Users\ponpo\Documents\Magnuson\Data\blind test\Apr 1-12 2026",
+    r"C:\Users\ponpo\Documents\Magnuson\Data\blind test\Sep 1-10 2024"
 ]
 
 def apply_viterbi_filter(probs):
     """
-    Final Production Version:
-    1. Extreme Inertia HMM (Transition Penalty: 10^-7)
-    2. Minimum Duration Filter (15-minute Debounce)
+    Overhauled Bulletproof Viterbi Filter.
+    Cures Emission Dominance using Bounded Direct Log-Likelihood mappings.
     """
     n = len(probs)
     if n == 0: return np.array([])
 
-    # --- 1. THE "SUPER-STUBBORN" HMM ---
-    # Quiet -> CME now costs 10^-7. 
-    # This requires about 10-15 mins of sustained high prob to overcome.
+    # --- 1. TRANSITION MATRIX (LOG SPACE) ---
     T = np.array([
         [1 - 1e-7, 1e-7], 
-        [1e-4, 1 - 1e-4]
+        [1e-5, 1 - 1e-5]  
     ])
+    log_T = np.log(T)
     
-    means = [0.15, 0.95] # Move CME mean higher to ignore mid-level noise
-    stds = [0.20, 0.10]  # Narrower CME variance makes it harder to "guess" a CME
+    # --- 2. BOUNDED EMISSIONS ---
+    eps = 1e-2  
+    probs_np = np.array(probs)
+    p_cme = np.clip(probs_np, eps, 1 - eps)
+    p_quiet = 1.0 - p_cme
     
+    log_emission_quiet = np.log(p_quiet)
+    log_emission_cme = np.log(p_cme)
+
+    # --- 3. VITERBI PROCESSING ---
     viterbi = np.zeros((2, n))
     backpointer = np.zeros((2, n), dtype=int)
     
-    viterbi[0, 0] = np.log(1.0) + norm.logpdf(probs[0], means[0], stds[0])
-    viterbi[1, 0] = np.log(1e-15) + norm.logpdf(probs[0], means[1], stds[1])
+    viterbi[0, 0] = np.log(1.0) + log_emission_quiet[0]
+    viterbi[1, 0] = np.log(1e-15) + log_emission_cme[0]
     
     for t in range(1, n):
         for s in range(2):
-            emission_log_prob = norm.logpdf(probs[t], means[s], stds[s])
-            probs_from_prev = [viterbi[prev_s, t-1] + np.log(T[prev_s, s]) for prev_s in range(2)]
-            viterbi[s, t] = emission_log_prob + max(probs_from_prev)
-            backpointer[s, t] = np.argmax(probs_from_prev)
+            current_emission = log_emission_cme[t] if s == 1 else log_emission_quiet[t]
+            paths = viterbi[:, t-1] + log_T[:, s]
+            viterbi[s, t] = current_emission + np.max(paths)
+            backpointer[s, t] = np.argmax(paths)
             
     best_path = np.zeros(n, dtype=int)
     best_path[n-1] = np.argmax(viterbi[:, n-1])
     for t in range(n-2, -1, -1):
         best_path[t] = backpointer[best_path[t+1], t+1]
         
-    # --- 2. THE DEBOUNCE LOGIC (The "Noise Killer") ---
-    # If a CME detection lasts less than 15 minutes, it's a false positive.
-    # We use a simple contiguous-block check.
-    path_series = pd.Series(best_path)
-    # Group contiguous identical values
-    groups = (path_series != path_series.shift()).cumsum()
+    # --- 4. HARD-WIRED SIGNAL SMOOTHING ---
+    path_smoothed = best_path.copy()
     
-    for _, group in path_series.groupby(groups):
-        if group.iloc[0] == 1 and len(group) < 15: # 15 minute threshold
-            best_path[group.index] = 0
-            
-    return best_path
+    # Pass A: 20-Minute Debounce
+    inside_cme = False
+    start_idx = 0
+    for i in range(n):
+        if path_smoothed[i] == 1 and not inside_cme:
+            inside_cme = True
+            start_idx = i
+        elif path_smoothed[i] == 0 and inside_cme:
+            inside_cme = False
+            duration = i - start_idx
+            if duration < 20:
+                path_smoothed[start_idx:i] = 0
+    if inside_cme and (n - start_idx) < 20:
+        path_smoothed[start_idx:n] = 0
+
+    # Pass B: 45-Minute Bridging
+    inside_quiet = False
+    q_start_idx = 0
+    for i in range(n):
+        if path_smoothed[i] == 0 and not inside_quiet:
+            inside_quiet = True
+            q_start_idx = i
+        elif path_smoothed[i] == 1 and inside_quiet:
+            inside_quiet = False
+            duration = i - q_start_idx
+            if duration < 45 and q_start_idx > 0:
+                if path_smoothed[q_start_idx - 1] == 1:
+                    path_smoothed[q_start_idx:i] = 1
+                    
+    return path_smoothed
 
 def run_inference():
-    print("🧠 Initializing Hybrid Transformer-HMM (Pure Python) Brain...")
+    print("\n" + "="*70)
+    print("🚀 TARGET ACQUIRED: RUNNING VITERBI WITH SATELLITE BLACKOUT MASK!")
+    print("="*70 + "\n")
     device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
     
     if not os.path.exists(MODEL_PATH):
-        print(f"❌ Error: Could not find {MODEL_PATH}.")
+        print(f"❌ Error: Missing weights file {MODEL_PATH} in current directory.")
         return
 
-    # Load Model & Scaler
     model = PatchTransformer(input_dim=9)
     model.load_state_dict(torch.load(MODEL_PATH, map_location=device))
     model.to(device)
@@ -92,10 +122,13 @@ def run_inference():
     scaler = joblib.load(SCALER_PATH)
     
     for test_dir in TEST_DIRS:
+        if not os.path.exists(test_dir):
+            print(f"\n⚠️ Skipping Directory: Folder not found locally -> {test_dir}")
+            continue
+            
         folder_name = os.path.basename(test_dir)
         print(f"\n🔍 Analyzing Mission Data: {folder_name}")
         
-        # 3. Data Processing
         raw_df = load_mag_directory(test_dir)
         features = build_mag_features(raw_df)
         
@@ -107,38 +140,37 @@ def run_inference():
         
         X_scaled = scaler.transform(features[feature_cols])
         
-        # 4. Sliding Window Inference
         raw_probs = []
         times = []
         win_size = 128
         
-        print(f"🏃 Running Transformer inference...")
+        print(f"🏃 Running Transformer inference with Blackout Mask...")
         with torch.no_grad():
             for i in range(win_size, len(X_scaled)):
-                seq = X_scaled[i-win_size:i]
-                seq_tensor = torch.FloatTensor(seq).unsqueeze(0).to(device)
-                output = model(seq_tensor)
-                prob = torch.sigmoid(output).item()
+                
+                # --- SATELLITE BLACKOUT MASK ---
+                # Checks if the total magnetic field has artificially flatlined
+                window_b_mag = features['b_mag'].iloc[i-win_size:i]
+                
+                if np.std(window_b_mag) < 0.001:
+                    prob = 0.0 # Force absolute zero if sensor is dead/NaN-filled
+                else:
+                    seq = X_scaled[i-win_size:i]
+                    seq_tensor = torch.FloatTensor(seq).unsqueeze(0).to(device)
+                    output = model(seq_tensor)
+                    prob = torch.sigmoid(output).item()
+                # -------------------------------
+
                 raw_probs.append(prob)
                 times.append(features.index[i])
 
-        # 5. Apply Viterbi Filter
-        print("🛠 Refining detections with Viterbi Algorithm...")
+        print("🛠 Refining detections with Bounded Viterbi Algorithm...")
         clean_states = apply_viterbi_filter(raw_probs)
 
-        # 6. Visualization
         plt.figure(figsize=(15, 7))
-        
-        # Plot 1: Raw Probability (Noisy Crimson)
         plt.plot(times, raw_probs, color='crimson', lw=1, alpha=0.3, label='Transformer Raw Prob')
-        
-        # Plot 2: HMM Detection (Solid Orange Block)
         plt.fill_between(times, 0, clean_states, color='orange', alpha=0.35, label='CME Detected (HMM)')
-        
-        # Plot 3: The Step Line (Final Decision)
         plt.step(times, clean_states, color='black', lw=1.8, label='HMM Hidden State')
-
-        # Plot 4: Reference Threshold
         plt.axhline(y=THRESHOLD, color='gray', linestyle=':', alpha=0.5, label='Inference Threshold')
 
         plt.title(f"Hybrid Transformer-HMM Detection Report: {folder_name}", fontsize=14)

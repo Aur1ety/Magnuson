@@ -7,7 +7,7 @@ Only PatchTransformer is trained — best performer from benchmark (F1=0.982).
 Optional: XGBoost and LightGBM baselines for comparison.
 
 Run on Kaggle:
-    !python /kaggle/working/Geomag-Detector/train.py \
+    !python /kaggle/working/Magnuson/train.py \
         --mag_dir "/kaggle/input/datasets/aurachan/updated-windows-mag-data" \
         --epochs 100
 """

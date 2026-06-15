@@ -9,7 +9,7 @@ Outputs:
   missed_window_N.png        -- one plot per missed window (8-panel feature plot)
 
 Run on Kaggle after train.py has completed:
-    !python /kaggle/working/Geomag-Detector/diagnose_missed.py \
+    !python /kaggle/working/Magnuson/diagnose_missed.py \
         --mag_dir  "/kaggle/input/datasets/aurachan/updated-windows-mag-data" \
         --model_path "saved_models/patchtransformer_mag_v1.pth" \
         --scaler_path "/kaggle/working/scalers/scaler_mag.pkl" \
