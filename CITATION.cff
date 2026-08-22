@@ -1,0 +1,19 @@
+cff-version: 1.2.0
+message: "If you use this software, please cite it."
+type: software
+title: "Magnuson: CME detection from Aditya-L1 MAG magnetometer data"
+authors:
+  - name: "Arinjay"
+license: MIT
+repository-code: "https://github.com/Aur1ety/Magnuson"
+abstract: >-
+  Coronal Mass Ejection detector for in-situ magnetometer data from the
+  Aditya-L1 MAG instrument, using a PatchTransformer (ViT-style patch
+  attention for time series) over 9 physics-informed magnetic-field features,
+  with XGBoost and LightGBM baselines.
+keywords:
+  - coronal mass ejection
+  - space weather
+  - Aditya-L1
+  - magnetometer
+  - machine learning
