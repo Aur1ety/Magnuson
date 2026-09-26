@@ -18,19 +18,23 @@ MODEL_PATH = "patchtransformer_mag_v1.pth"
 SCALER_PATH = "scaler_mag.pkl"
 THRESHOLD = 0.61  # Optimal F1 threshold from training
 
-# Exact paths matched to your local directory strings
-TEST_DIRS = [
-    r"C:\Users\<you>\Documents\Magnuson\Data\blind test\Oct 9_24 - Oct 12_24",
-    r"C:\Users\<you>\Documents\Magnuson\Data\blind test\May 14-17 2024",
-    r"C:\Users\<you>\Documents\Magnuson\Data\blind test\Mar 1-10 2025",
-    r"C:\Users\<you>\Documents\Magnuson\Data\blind test\Apr 1-12 2026",
-    r"C:\Users\<you>\Documents\Magnuson\Data\blind test\Sep 1-10 2024"
-]
+# Test windows: folders under "Data/blind test" next to this script.
+# The folder named "May 14-17 2024" actually holds 9-13 May 2024, the same files as the training
+# data, so it is not a blind test; it stays in the list only for comparison.
+BLIND_DIR = os.path.join(os.path.dirname(os.path.abspath(__file__)), "Data", "blind test")
+TEST_DIRS = [os.path.join(BLIND_DIR, name) for name in (
+    "Oct 9_24 - Oct 12_24",
+    "May 14-17 2024",
+    "Mar 1-10 2025",
+    "Apr 1-12 2026",
+    "Sep 1-10 2024",
+)]
 
 def apply_viterbi_filter(probs):
     """
-    Overhauled Bulletproof Viterbi Filter.
-    Cures Emission Dominance using Bounded Direct Log-Likelihood mappings.
+    Two-state (quiet / CME) Viterbi decoding of the per-minute probabilities, then debounce and
+    bridging. Emissions use the probabilities clipped to [0.01, 0.99], so a single extreme minute
+    cannot dominate the decoded path.
     """
     n = len(probs)
     if n == 0: return np.array([])

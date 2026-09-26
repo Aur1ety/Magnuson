@@ -41,7 +41,7 @@ def parse_cdf(filepath: Path) -> pd.DataFrame:
     return pd.DataFrame(data).set_index("time").sort_index()
 
 def load_cdf_directory(directory: str) -> pd.DataFrame:
-    # RECURSIVE FIX: Digs into Kaggle subfolders
+    # rglob: Kaggle datasets nest the files in subfolders
     files = sorted(Path(directory).rglob("*.cdf"))
     if not files: raise FileNotFoundError(f"No CDF files in: {directory}")
     df = pd.concat([parse_cdf(f) for f in files]).sort_index()

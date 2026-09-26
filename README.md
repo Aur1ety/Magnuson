@@ -8,7 +8,7 @@ Coronal Mass Ejection (CME) detector using magnetometer data from the Aditya-L1 
 
 ```
 Magnuson/
-├── Data/                           # MAG NetCDF + blind test data (gitignored)
+├── Data/                           # MAG NetCDF + blind test data (partly in the repo, see Data)
 ├── saved_models/                   # Trained model checkpoints (gitignored)
 ├── mag_pipeline.py                 # MAG L2 NetCDF ingestion + resampling
 ├── feature_engineer.py             # 9 physics-informed MAG features
@@ -22,7 +22,6 @@ Magnuson/
 ├── check_model.py                  # Model input dimension verifier
 ├── data_pipeline.py                # Original SWIS pipeline (legacy)
 ├── eval.groovy                     # Legacy eval script
-├── CME_MAG_Implementation_Guide.md # Full implementation guide
 ├── magnuson.ipynb                  # Notebook (gitignored)
 ├── .gitignore
 └── README.md
@@ -192,9 +191,9 @@ For each false negative window, produces:
 MAG L2 NetCDF files at 10-second cadence from Aditya-L1 PRADAN. Data directory contains:
 
 - **Per-month folders** (May 2024 – Feb 2026): training data with known CME events
-- **blind test/** : 5 held-out windows for blind evaluation (Oct 2024, May 2024, Mar 2025, Apr 2026, Sep 2024)
+- **blind test/** : held-out windows for blind evaluation (Oct 2024, Mar 2025, Apr 2026, Sep 2024). The folder named "May 14-17 2024" actually holds 9-13 May 2024, the same files as the training data, so it is not a blind test.
 
-All data, model checkpoints (`.pth`), and scalers (`.pkl`) are gitignored.
+The trained checkpoint (`patchtransformer_mag_v1.pth`), its scaler (`scaler_mag.pkl`) and part of the MAG data are in the repo (they were added before the ignore rules); new data, checkpoints and scalers are gitignored. The MAG L2 files are ISRO Aditya-L1 data from ISSDC PRADAN.
 
 ---
 

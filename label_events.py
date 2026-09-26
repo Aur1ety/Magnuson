@@ -91,7 +91,7 @@ def fetch_donki_events(start_date: str, end_date: str) -> pd.DataFrame:
     return df
 
 
-# Known CME/ICME windows in your training data.
+# Known CME/ICME windows in the training data.
 # Used as fallback if no label_csv or DONKI provided.
 # Dates are approximate -- refine from ISRO event bulletins.
 KNOWN_EVENTS = [

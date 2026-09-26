@@ -2,8 +2,9 @@ import torch
 import joblib
 import os
 
-model_path = r"C:\Users\<you>\Documents\Magnuson\patchtransformer_mag_v1.pth"
-scaler_path = r"C:\Users\<you>\Documents\Magnuson\scaler_mag.pkl"
+HERE = os.path.dirname(os.path.abspath(__file__))
+model_path = os.path.join(HERE, "patchtransformer_mag_v1.pth")
+scaler_path = os.path.join(HERE, "scaler_mag.pkl")
 
 print(f"--- Identity Check ---")
 
@@ -20,6 +21,6 @@ scaler = joblib.load(scaler_path)
 print(f"Scaler Features: {scaler.n_features_in_}")
 
 if input_dim == 9:
-    print("\n✅ VERIFIED: This is the 9-feature 'Smarter' Brain.")
+    print("\n✅ OK: this is the 9-feature model.")
 else:
     print("\n❌ ALERT: This is still the old 8-feature model!")
