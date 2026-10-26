@@ -1,6 +1,8 @@
-# Magnuson — CME Detection from Aditya-L1 MAG Magnetometer Data
+# Magnuson: Storm-Interval Detection from Aditya-L1 MAG Magnetometer Data
 
-Coronal Mass Ejection (CME) detector using magnetometer data from the Aditya-L1 satellite's MAG instrument. Uses a PatchTransformer (ViT-style patch attention for time series) to detect CME/ICME passages from 9 physics-informed magnetic field features.
+Detector of storm-driving intervals in magnetometer data from the Aditya-L1 satellite's MAG instrument, first framed as CME/ICME detection. Uses a PatchTransformer (ViT-style patch attention for time series) on 9 physics-informed magnetic field features.
+
+> **Note on labels.** In practice the training labels so far are the nine hand-typed windows in `label_events.py` (`KNOWN_EVENTS`; dates approximate), each meant to cover a geomagnetic storm. Four of them overlap an ICME in the [Richardson and Cane near-Earth ICME list](https://izw1.caltech.edu/ACE/ASC/DATA/level3/icmetable2.htm), and a fifth (April 2025) covers the shock ahead of an ICME and ends as that ICME begins; one (November 2024) closes before that month's storm started (Kp stayed below 4). The model is therefore best read as a detector of storm-driving intervals rather than of CME passages as such. Note also that `blind_test_runner.py` feeds raw 10-second samples to a model trained on one-minute medians, so its windows and its debounce and bridging steps run on a different time scale from training.
 
 ---
 
@@ -90,7 +92,7 @@ The `high_b_mag_rotation` feature includes an absolute 10 nT floor to prevent fa
 
 ### `label_events.py` — Event Labeling
 
-Binary labels (1 = CME/ICME passage, 0 = quiet) from three sources:
+Binary labels (1 = labelled event window, 0 = quiet) from three sources:
 
 1. **Local ISRO CSV** — manually curated events from PRADAN reports
 2. **NASA DONKI API** — automated CME arrival catalog (`kauai.ccmc.gsfc.nasa.gov/DONKI/WS/get/CMEAnalysis`), no auth required
